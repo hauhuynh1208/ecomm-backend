@@ -22,8 +22,15 @@ export class AuthService {
     return bcrypt.compare(password, hash);
   }
 
+  async hashPassword(password: string) {
+    return bcrypt.hash(password, this.configService.get('jwt').bcrypt_salt);
+  }
+
   async login(email: string, password: string): Promise<any> {
-    const user = await this.userRepository.findOneBy({ email });
+    const user = await this.userRepository.findOne({
+      where: { email: email },
+      select: ['id', 'email', 'password'],
+    });
     if (user === null) throw new BadRequestException('Email is not existed');
 
     const isPasswordMatched = await this.comparePassword(
@@ -45,30 +52,13 @@ export class AuthService {
     };
   }
 
-  async createUser(body: any): Promise<Record<string, any>> {
-    let isOk = false;
-    const userDTO = new UsersDTO();
-    userDTO.email = body.email;
-    userDTO.password = bcrypt.hashSync(body.password, 10);
-
-    await validate(userDTO).then((errors) => {
-      if (errors.length > 0) {
-        this.logger.debug(`${errors}`, AuthService.name);
-      } else {
-        isOk = true;
-      }
+  async createUser(email: string, password: string): Promise<any> {
+    const user = await this.userRepository.findOneBy({ email });
+    if (user) throw new BadRequestException('Email existed');
+    const _password = await this.hashPassword(password);
+    return this.userRepository.save({
+      email,
+      password: _password,
     });
-    if (isOk) {
-      await this.userRepository.save(userDTO).catch((error) => {
-        this.logger.debug(error.message, AuthService.name);
-      });
-      if (isOk) {
-        return { status: 201, content: { msg: `User created with success` } };
-      } else {
-        return { status: 400, content: { msg: 'User already exists' } };
-      }
-    } else {
-      return { status: 400, content: { msg: 'Invalid content' } };
-    }
   }
 }

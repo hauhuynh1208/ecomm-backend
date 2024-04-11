@@ -25,8 +25,7 @@ export class AuthController {
 
   // @UseGuards(JwtAuthGuard)
   @Post('register')
-  async register(@Req() req, @Body() body, @Res() res) {
-    const auth = await this.authService.createUser(body);
-    res.status(auth.status).json(auth.msg);
+  register(@Body() body: SignInDto) {
+    return this.authService.createUser(body.email, body.password);
   }
 }
