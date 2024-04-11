@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from './config/configuration';
 import { Items } from './database/entities/items.entity';
 import { ItemsModule } from './items/items.module';
+import { Users } from './database/entities/user.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,12 +20,13 @@ import { ItemsModule } from './items/items.module';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get('database.postgres'),
-        entities: [Items],
+        entities: [Items, Users],
         synchronize: true,
       }),
       inject: [ConfigService],
     }),
     ItemsModule,
+    AuthModule,
   ],
 
   controllers: [AppController],

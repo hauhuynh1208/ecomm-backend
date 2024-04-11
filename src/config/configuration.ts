@@ -5,4 +5,8 @@ export default () => ({
   database: {
     postgres: process.env.POSTGRES_URL,
   },
+  keys: {
+    privateKey: process.env.PRIVATE_KEY,
+    publicKey: process.env.PUBLIC_KEY,
+  },
 });
