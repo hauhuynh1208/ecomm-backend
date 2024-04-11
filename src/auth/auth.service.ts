@@ -1,57 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Users } from 'src/database/entities/user.entity';
+import { Users } from 'src/entities/user.entity';
 import { LoggerService } from 'src/logger/logger.service';
 import { Repository } from 'typeorm';
 import { UsersDTO } from './dto/users.dto';
 import { validate } from 'class-validator';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private logger: LoggerService,
     private jwtService: JwtService,
+    private configService: ConfigService,
     @InjectRepository(Users) private userRepository: Repository<Users>,
   ) {}
 
-  async login(user: any): Promise<Record<string, any>> {
-    let isOk = false;
-    const userDTO = new UsersDTO();
-    userDTO.email = user.email;
-    userDTO.password = user.password;
+  async comparePassword(password: string, hash: string) {
+    return bcrypt.compare(password, hash);
+  }
 
-    await validate(userDTO).then((errors) => {
-      if (errors.length > 0) {
-        this.logger.debug(errors, AuthService.name);
-      } else {
-        isOk = true;
-      }
-    });
-    if (isOk) {
-      const userDetails = await this.userRepository.findOneBy({
-        email: user.email,
-      });
-      if (userDetails === null) {
-        return { status: 401, msg: { msg: 'Invalid credentials' } };
-      }
+  async login(email: string, password: string): Promise<any> {
+    const user = await this.userRepository.findOneBy({ email });
+    if (user === null) throw new BadRequestException('Email is not existed');
 
-      const isValid = bcrypt.compareSync(user.password, userDetails.password);
-      if (isValid) {
-        return {
-          status: 200,
-          msg: {
-            email: user.email,
-            access_token: this.jwtService.sign({ email: user.email }),
-          },
-        };
-      } else {
-        return { status: 401, msg: { msg: 'Invalid credential' } };
-      }
-    } else {
-      return { status: 400, msg: { msg: 'Invalid fields.' } };
+    const isPasswordMatched = await this.comparePassword(
+      password,
+      user.password,
+    );
+    if (!isPasswordMatched) {
+      throw new BadRequestException('Password incorrect');
     }
+    const secret = this.configService.get('jwt').jwt_secret;
+    const { password: pw, ...rest } = user;
+    const payload = {
+      id: user.id,
+      email: user.email,
+    };
+    return {
+      ...rest,
+      access_token: await this.jwtService.signAsync(payload, { secret }),
+    };
   }
 
   async createUser(body: any): Promise<Record<string, any>> {

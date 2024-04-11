@@ -1,12 +1,13 @@
-export default () => ({
-  server: {
-    port: parseInt(process.env.PORT, 10) || 3000,
-  },
-  database: {
-    postgres: process.env.POSTGRES_URL,
-  },
-  keys: {
-    privateKey: process.env.PRIVATE_KEY,
-    publicKey: process.env.PUBLIC_KEY,
-  },
-});
+import database from './envs/database.config';
+import jwtConfig from './envs/jwt.config';
+// import uploadConfig from './envs/upload.config';
+// import awsConfig from './envs/aws.config';
+
+export const configuration = async (): Promise<any> => {
+  return {
+    db: database(),
+    jwt: jwtConfig(),
+    // upload: uploadConfig(),
+    // aws: awsConfig(),
+  };
+};

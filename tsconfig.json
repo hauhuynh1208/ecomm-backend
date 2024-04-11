@@ -10,6 +10,15 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@utils/*": ["src/utils/*"],
+      "@utils": ["src/utils/index"],
+      "@commons/*": ["src/commons/*"],
+      "@entities": ["src/entities/index"],
+      "@modules/*": ["src/modules/*"],
+      "@decorators/*": ["src/decorators/*"],
+      "@guards/*": ["src/guards/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,

@@ -2,28 +2,41 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import configuration from './config/configuration';
-import { Items } from './database/entities/items.entity';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { configuration } from './config';
 import { ItemsModule } from './items/items.module';
-import { Users } from './database/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
+import * as entities from '@entities';
+import { JwtModule } from '@nestjs/jwt';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
+      envFilePath: ['.env'],
     }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        url: configService.get('database.postgres'),
-        entities: [Items, Users],
-        synchronize: true,
+        ...configService.get<TypeOrmModuleOptions>('db'),
+        useUTC: true,
       }),
       inject: [ConfigService],
+    }),
+    TypeOrmModule.forFeature(Object.values(entities)),
+    JwtModule.registerAsync({
+      useFactory: (cf: ConfigService) => ({
+        global: true,
+        secret: cf.get('jwt').jwt_secret,
+        signOptions: { expiresIn: '5d' },
+      }),
+      inject: [ConfigService],
+    }),
+    EventEmitterModule.forRoot({
+      newListener: true,
+      removeListener: true,
+      verboseMemoryLeak: true,
     }),
     ItemsModule,
     AuthModule,
